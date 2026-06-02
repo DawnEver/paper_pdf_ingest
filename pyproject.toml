@@ -32,7 +32,7 @@ dev = [
 ingest = 'paper_pdf_ingest.__main__:main'
 
 [project.urls]
-Repository = 'https://github.com/linxuanm/paper-pdf-ingest'
+Repository = 'https://github.com/DawnEver/paper_pdf_ingest'
 
 # ===================
 # Hatch
