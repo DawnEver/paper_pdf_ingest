@@ -1,6 +1,7 @@
 import re
 
-from .utils import RN_PATTERN as _RN, strip_formatting
+from .utils import RN_PATTERN as _RN
+from .utils import strip_formatting
 
 _KEEP_HEADINGS = re.compile(r'result|experiment|evaluat|ablat|comparison', re.IGNORECASE)
 
@@ -22,7 +23,7 @@ def _clean_heading_text(heading: str) -> str:
     if not m:
         return heading
     prefix = m.group(1)
-    rest = heading[m.end():].strip()
+    rest = heading[m.end() :].strip()
     result = []
     for line in rest.split('\n'):
         for w in line.strip().split():

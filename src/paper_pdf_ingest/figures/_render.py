@@ -1,4 +1,5 @@
 """Figure and equation rendering: disk I/O, markdown insertion, cross-section fixup."""
+
 from __future__ import annotations
 
 import re
@@ -6,12 +7,13 @@ from pathlib import Path
 
 import fitz
 
-from ..utils import RN_PATTERN as _RN, slug
+from paper_pdf_ingest.utils import RN_PATTERN as _RN
+from paper_pdf_ingest.utils import slug
+
 from ._crop import crop_equation, crop_figure, get_equation_context
 from ._map import FIG_TABLE_RE, build_equation_page_map, build_figure_page_map, build_page_section_map
-_CAPTION_RE = re.compile(
-    rf'(?P<label>Figure\s+\d+|Fig\.\s*\d+|Table\s+(?:\d+|{_RN}))\.(?P<rest>.+)', re.IGNORECASE
-)
+
+_CAPTION_RE = re.compile(rf'(?P<label>Figure\s+\d+|Fig\.\s*\d+|Table\s+(?:\d+|{_RN}))\.(?P<rest>.+)', re.IGNORECASE)
 
 
 # ── Low-level render helpers ──────────────────────────────────────────────────
@@ -70,7 +72,7 @@ def _insert_figures_inline(
 
         # Skip mid-sentence references ("shown in Fig. 2.")
         preceding_start = content.rfind('\n', 0, m.start()) + 1
-        prefix = content[preceding_start:m.start()].strip()
+        prefix = content[preceding_start : m.start()].strip()
         if prefix and prefix[-1].isalpha() and len(prefix.split()) >= 2:
             continue
 
@@ -111,7 +113,8 @@ def _insert_equations_inline(
             continue
         owning = page_section_map.get(eq_page_map[eq_label])
         img_path = (
-            f'../img/sec{owning:02d}/{Path(img_rel).name}' if owning is not None and owning != section_idx
+            f'../img/sec{owning:02d}/{Path(img_rel).name}'
+            if owning is not None and owning != section_idx
             else f'../{img_rel}'
         )
 
@@ -132,14 +135,12 @@ def _insert_equations_inline(
             # Distinguish definition occurrence from a cross-reference like "from (5) and (6)".
             # A definition has nothing alphabetic before (N) on the same line AND nothing after.
             nl_before = content.rfind('\n', 0, m.start())
-            text_before_on_line = content[nl_before + 1: m.start()]
+            text_before_on_line = content[nl_before + 1 : m.start()]
             nl_after = content.find('\n', m.end())
-            text_after_on_line = (
-                content[m.end(): nl_after].strip() if nl_after != -1 else content[m.end():].strip()
-            )
+            text_after_on_line = content[m.end() : nl_after].strip() if nl_after != -1 else content[m.end() :].strip()
             is_cross_ref = bool(text_after_on_line) or bool(re.search(r'[a-zA-Z]', text_before_on_line))
             if not is_cross_ref:
-                preceding = content[max(0, m.start() - 200): m.start()]
+                preceding = content[max(0, m.start() - 200) : m.start()]
                 if not re.search(rf'!\[.*?[Ee]quation.*?{eq_num}.*?\]', preceding):
                     insertion = f'\n\n![{eq_label}]({img_path})\n\n'
                     insert_at = max(m.start(), min_insert_pos)
@@ -170,9 +171,7 @@ def _insert_equations_inline(
                     tokens = re.split(r'(\w+)', key)
                     pat = ''.join(
                         # Short word: allow _word_ and trailing whitespace from removed markers
-                        f'_?{re.escape(t)}_?\\s*'
-                        if (re.match(r'^\w{1,4}$', t) and not t.isdigit())
-                        else re.escape(t)
+                        f'_?{re.escape(t)}_?\\s*' if (re.match(r'^\w{1,4}$', t) and not t.isdigit()) else re.escape(t)
                         for t in tokens
                     )
                     m_key = re.search(pat, content, re.IGNORECASE)
@@ -190,7 +189,7 @@ def _insert_equations_inline(
             m2 = re.search(rf'\(\s*{eq_num}\s*\)', content)
             if m2 is None:
                 continue
-            preceding = content[max(0, m2.start() - 200): m2.start()]
+            preceding = content[max(0, m2.start() - 200) : m2.start()]
             if not re.search(rf'!\[.*?[Ee]quation.*?{eq_num}.*?\]', preceding):
                 insertion = f'\n\n![{eq_label}]({img_path})\n\n'
                 insert_at = max(m2.start(), min_insert_pos)
@@ -209,7 +208,7 @@ def _insert_equations_inline(
         # Start the gap search from whichever is later: end of lead-in line or
         # min_insert_pos (so consecutive equations maintain correct order).
         search_from = max(line_end, min_insert_pos)
-        gap_m = re.search(r'\n+', content[search_from: search_from + 300])
+        gap_m = re.search(r'\n+', content[search_from : search_from + 300])
         if gap_m:
             insert_pos = search_from + gap_m.start() + 1
         else:

@@ -1,4 +1,3 @@
-from ..conftest import LONG_BODY
 from paper_pdf_ingest.sections import (
     _is_paper_boundary,
     _paper_title_from_sections,
@@ -6,6 +5,7 @@ from paper_pdf_ingest.sections import (
     clean_sections,
     split_sections,
 )
+from tests.conftest import LONG_BODY
 
 SAMPLE_MD = f"""# Title of Paper
 

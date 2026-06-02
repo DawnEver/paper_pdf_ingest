@@ -1,4 +1,5 @@
 """Label → page and page → section mapping utilities."""
+
 from __future__ import annotations
 
 import re
@@ -6,7 +7,8 @@ from pathlib import Path
 
 import fitz
 
-from ..utils import RN_PATTERN as _RN
+from paper_pdf_ingest.utils import RN_PATTERN as _RN
+
 FIG_TABLE_RE = re.compile(rf'(Figure\s+\d+|Fig\.\s*\d+|Table\s+(?:\d+|{_RN}))', re.IGNORECASE)
 
 
@@ -27,9 +29,7 @@ def build_figure_page_map(pdf_path: Path) -> dict[str, int]:
         for blk in blocks:
             if blk['type'] != 0:
                 continue
-            blk_text = ''.join(
-                span.get('text', '') for line in blk.get('lines', []) for span in line.get('spans', [])
-            )
+            blk_text = ''.join(span.get('text', '') for line in blk.get('lines', []) for span in line.get('spans', []))
             if len(blk_text) > 350:
                 continue
             blk_height = blk['bbox'][3] - blk['bbox'][1]
@@ -37,9 +37,7 @@ def build_figure_page_map(pdf_path: Path) -> dict[str, int]:
                 label = re.sub(r'\s+', ' ', m.group(1)).strip()
                 normalized = re.sub(r'(?i)^Fig\.\s*', 'Figure ', label)
                 # Caption: "label." must appear in the block text
-                is_caption = bool(
-                    re.search(re.escape(label) + r'\.', blk_text, re.IGNORECASE)
-                )
+                is_caption = bool(re.search(re.escape(label) + r'\.', blk_text, re.IGNORECASE))
                 if is_caption:
                     prev = caption_candidates.get(normalized)
                     if prev is None or blk_height < prev[0]:
@@ -82,7 +80,7 @@ def build_page_section_map(
     if pdf_path:
         doc = fitz.open(str(pdf_path))
         seen_pages = set(page_to_section)
-        for idx, (_heading, body) in enumerate(body_sections, 1):
+        for idx, (_heading, _body) in enumerate(body_sections, 1):
             if idx in page_to_section.values():
                 continue  # already owns a page via caption
             heading_text = re.sub(r'^#+\s*', '', _heading).strip()
@@ -117,6 +115,8 @@ def build_page_section_map(
                 page_to_section[page] = last_sec
 
     return page_to_section
+
+
 def build_equation_page_map(pdf_path: Path) -> dict[str, int]:
     """Map equation numbers like 'Equation (2)' to 0-based pages.
 
@@ -137,7 +137,7 @@ def build_equation_page_map(pdf_path: Path) -> dict[str, int]:
             bbox = blk['bbox']
 
             # Standalone equation number at column right margin: "(1)", "(12)"
-            # Left column right edge ≈ 0.40-0.47×width; right column ≈ 0.87-0.97×width
+            # Left column right edge ~0.40-0.47*width; right column ~0.87-0.97*width
             m = re.match(r'^\((\d+)\)$', blk_text)
             if m and bbox[0] > page_width * 0.35:
                 key = f'Equation {m.group(1)}'
@@ -157,9 +157,7 @@ def build_equation_page_map(pdf_path: Path) -> dict[str, int]:
             # (e.g. "...as:\n[formula chars]\n(1)\nwhere ...") — the block-level checks above
             # would not match because blk_text contains surrounding prose.
             for line in blk.get('lines', []):
-                line_text = ''.join(
-                    s.get('text', '') for s in line.get('spans', [])
-                ).strip()
+                line_text = ''.join(s.get('text', '') for s in line.get('spans', [])).strip()
                 line_bbox = line['bbox']
                 m_line = re.match(r'^\((\d+)\)$', line_text)
                 if m_line and line_bbox[0] > page_width * 0.35:

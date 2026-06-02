@@ -10,7 +10,6 @@ from .utils import slug
 
 def main() -> None:
     if len(sys.argv) != 3:
-        print('usage: ingest <pdf> <slug-dir>', file=sys.stderr)
         sys.exit(1)
 
     pdf = Path(sys.argv[1]).resolve()
@@ -30,7 +29,6 @@ def main() -> None:
     main_sections, appended_papers = clean_sections(raw_sections)
 
     if not main_sections:
-        print(f'error: no sections found in {pdf}', file=sys.stderr)
         sys.exit(1)
 
     _n_sec, _n_fig, _n_tbl = write_paper_output(main_sections, out_dir, md_text, pdf_path=pdf)

@@ -55,15 +55,15 @@ def _find_marker_single() -> str | None:
     if exe:
         return exe
     # Check next to the running python (venv Scripts/ not always on PATH)
-    exe_dir = os.path.dirname(sys.executable)
+    exe_dir = Path(sys.executable).parent
     exe_name = 'marker_single.exe' if os.name == 'nt' else 'marker_single'
-    candidate = os.path.join(exe_dir, exe_name)
-    if os.path.isfile(candidate):
-        return candidate
+    candidate = exe_dir / exe_name
+    if candidate.is_file():
+        return str(candidate)
     # Check sys.prefix bin
-    candidate = os.path.join(sys.prefix, 'bin', 'marker_single')
-    if os.path.isfile(candidate):
-        return candidate
+    candidate = Path(sys.prefix) / 'bin' / 'marker_single'
+    if candidate.is_file():
+        return str(candidate)
     return None
 
 
@@ -139,15 +139,13 @@ def detect_formula_regions(pdf_path: Path) -> list[dict]:
         for blk in blocks:
             if blk['type'] != 0:
                 continue
-            blk_text = ''.join(
-                span.get('text', '') for line in blk.get('lines', []) for span in line.get('spans', [])
-            )
+            blk_text = ''.join(span.get('text', '') for line in blk.get('lines', []) for span in line.get('spans', []))
             blk_text = blk_text.strip()
             if not blk_text or len(blk_text) > 500:
                 continue
 
             # Formula heuristics: short blocks with math symbols
-            math_score = sum(1 for c in blk_text if c in '=+-*/()[]{}^_∫∑∏√∂∞≈≠≤≥±×÷')
+            math_score = sum(1 for c in blk_text if c in '=+-*/()[]{}^_∫∑∏√∂∞≈≠≤≥±×÷')  # noqa: RUF001
             if math_score >= 2 and len(blk_text) < 200:
                 bbox = blk['bbox']
                 formulas.append({
@@ -194,7 +192,7 @@ def augment_markdown_with_formulas(md_text: str, pdf_path: Path) -> str:
                     page_num = int(page_str) - 1  # filenames use 1-based page numbers
                 except ValueError:
                     page_num = -1
-                if page_num in page_formulas and page_formulas[page_num]:
+                if page_formulas.get(page_num):
                     formula_text = page_formulas[page_num].pop(0)
                     if formula_text and formula_text != alt:
                         result.append(f'```math\n{formula_text}\n```')

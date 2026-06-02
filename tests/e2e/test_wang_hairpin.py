@@ -4,31 +4,31 @@ Ground truth:
   Title:    "Scripting-Based 3D Geometry Modelling of Hairpin Windings in EV Traction Motors"
   Sections: 9 total (01-09); key named: Introduction, II/scripting, III/interference,
             IV/check+tuning, V/conclusion, References
-  Figures:  Fig. 1–13  (13 figures)
+  Figures:  Fig. 1-13  (13 figures)
   Tables:   TABLE I, TABLE II, TABLE III
-  Equations: (1)–(12) in section 03; (13) in section 04
+  Equations: (1)-(12) in section 03; (13) in section 04
 
-Observed image dimensions at 2×render (fitz.Matrix(2.0,2.0)):
-  figures  : w 376–980, h 194–456
-  tables   : w 386–502, h 153–305
-  equations: w 334–519, h 44–156
+Observed image dimensions at 2x render (fitz.Matrix(2.0,2.0)):
+  figures  : w 376-980, h 194-456
+  tables   : w 386-502, h 153-305
+  equations: w 334-519, h 44-156
 
-Full-page fallback: 1224×1584 (letter at 2×).
+Full-page fallback: 1224x1584 (letter at 2x).
 """
+
 from __future__ import annotations
 
+import itertools
 import re
 from pathlib import Path
 
 import pytest
 
-from ..conftest import _marker_skip
+from tests.conftest import _marker_skip
+
 from .conftest import (
     _hairpin_skip,
     collect_pngs,
-    get_hairpin_pdf_path,
-    hairpin_out_marker,   # noqa: F401 – imported so pytest can discover the fixture
-    hairpin_out_pymupdf4llm,  # noqa: F401
     png_matches_label,
     read_png_size,
 )
@@ -38,47 +38,47 @@ from .conftest import (
 _TITLE_KEYWORDS = ('Hairpin', 'Winding', 'EV')
 _MIN_SECTIONS, _MAX_SECTIONS = 7, 14
 _EXPECTED_TABLES = ['TABLE I', 'TABLE II', 'TABLE III']
-_EXPECTED_EQ_SEC3 = list(range(1, 13))    # equations 1–12 in section 03
-_EXPECTED_EQ_SEC4 = [13]                  # equation 13 in section 04
+_EXPECTED_EQ_SEC3 = list(range(1, 13))  # equations 1-12 in section 03
+_EXPECTED_EQ_SEC4 = [13]  # equation 13 in section 04
 _FULL_PAGE = (1224, 1584)
 
-# ── Per-asset expected sizes (observed at 2× render, tolerance ±30 px) ────────
+# ── Per-asset expected sizes (observed at 2x render, tolerance +/-30 px) ────────
 # Source: actual rendered output of the first clean ingest run.
 # Format: filename-slug → (width, height)
 _TOL = 30  # px tolerance for dimension checks
 
 _FIGURE_SIZES: dict[str, tuple[int, int]] = {
-    'figure-1':  (512, 200),
-    'figure-2':  (504, 370),
-    'figure-3':  (376, 241),
-    'figure-4':  (509, 456),
-    'figure-5':  (512, 304),
-    'figure-6':  (512, 340),
-    'figure-7':  (445, 194),
-    'figure-8':  (512, 383),
-    'figure-9':  (470, 195),
+    'figure-1': (512, 200),
+    'figure-2': (504, 370),
+    'figure-3': (376, 241),
+    'figure-4': (509, 456),
+    'figure-5': (512, 304),
+    'figure-6': (512, 340),
+    'figure-7': (445, 194),
+    'figure-8': (512, 383),
+    'figure-9': (470, 195),
     'figure-10': (512, 418),
     'figure-11': (512, 215),
-    'figure-12': (980, 294),   # 2-column-wide figure
+    'figure-12': (980, 294),  # 2-column-wide figure
     'figure-13': (512, 201),
 }
 
 _TABLE_SIZES: dict[str, tuple[int, int]] = {
-    'table-i':   (386, 305),
-    'table-ii':  (445, 228),
+    'table-i': (386, 305),
+    'table-ii': (445, 228),
     'table-iii': (502, 153),
 }
 
 _EQ_SIZES: dict[str, tuple[int, int]] = {
-    'equation-1':  (519, 44),
-    'equation-2':  (519, 44),
-    'equation-3':  (392, 62),
-    'equation-4':  (519, 49),
-    'equation-5':  (519, 46),
-    'equation-6':  (431, 69),
-    'equation-7':  (519, 49),
-    'equation-8':  (334, 69),
-    'equation-9':  (519, 44),
+    'equation-1': (519, 44),
+    'equation-2': (519, 44),
+    'equation-3': (392, 62),
+    'equation-4': (519, 49),
+    'equation-5': (519, 46),
+    'equation-6': (431, 69),
+    'equation-7': (519, 49),
+    'equation-8': (334, 69),
+    'equation-9': (519, 44),
     'equation-10': (519, 44),
     'equation-11': (519, 89),
     'equation-12': (519, 156),
@@ -95,6 +95,7 @@ _EQ_H = (20, 220)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _section03_md(out_dir: Path) -> Path | None:
     for p in (out_dir / 'md').glob('03-*.md'):
@@ -125,6 +126,7 @@ def _eq_image_line_numbers(content: str) -> dict[int, int]:
 
 # ── Tests: structure ─────────────────────────────────────────────────────────
 
+
 class TestHairpinStructure:
     """Section structure and paper.md content."""
 
@@ -132,7 +134,7 @@ class TestHairpinStructure:
     def test_section_count_pymupdf4llm(self, hairpin_out_pymupdf4llm):
         md_files = list((hairpin_out_pymupdf4llm / 'md').glob('*.md'))
         assert _MIN_SECTIONS <= len(md_files) <= _MAX_SECTIONS, (
-            f'pymupdf4llm: {len(md_files)} section files, expected {_MIN_SECTIONS}–{_MAX_SECTIONS}'
+            f'pymupdf4llm: {len(md_files)} section files, expected {_MIN_SECTIONS}-{_MAX_SECTIONS}'
         )
 
     @_hairpin_skip
@@ -158,18 +160,14 @@ class TestHairpinStructure:
 
     @_hairpin_skip
     def test_key_sections_present_pymupdf4llm(self, hairpin_out_pymupdf4llm):
-        all_text = ''.join(
-            p.read_text('utf-8') for p in (hairpin_out_pymupdf4llm / 'md').glob('*.md')
-        )
+        all_text = ''.join(p.read_text('utf-8') for p in (hairpin_out_pymupdf4llm / 'md').glob('*.md'))
         for kw in ('INTRODUCTION', 'CONCLUSION'):
             assert kw in all_text.upper(), f'pymupdf4llm: section "{kw}" not found'
 
     @_hairpin_skip
     @_marker_skip
     def test_key_sections_present_marker(self, hairpin_out_marker):
-        all_text = ''.join(
-            p.read_text('utf-8') for p in (hairpin_out_marker / 'md').glob('*.md')
-        )
+        all_text = ''.join(p.read_text('utf-8') for p in (hairpin_out_marker / 'md').glob('*.md'))
         for kw in ('INTRODUCTION', 'CONCLUSION'):
             assert kw in all_text.upper()
 
@@ -188,6 +186,7 @@ class TestHairpinStructure:
 
 
 # ── Tests: rendered images ────────────────────────────────────────────────────
+
 
 class TestHairpinImages:
     """Figure, table, and equation image existence and dimension bounds."""
@@ -236,7 +235,7 @@ class TestHairpinImages:
         assert abs(h - exp_h) <= _TOL, f'{slug}: height {h} ≠ expected {exp_h} (±{_TOL})'
 
     @_hairpin_skip
-    @pytest.mark.parametrize('slug,exp', list(_TABLE_SIZES.items()))
+    @pytest.mark.parametrize(('slug', 'exp'), list(_TABLE_SIZES.items()))
     def test_table_dimensions_pymupdf4llm(self, hairpin_out_pymupdf4llm, slug, exp):
         """Each table must be within ±_TOL px of its observed reference size."""
         exp_w, exp_h = exp
@@ -247,19 +246,20 @@ class TestHairpinImages:
         assert abs(h - exp_h) <= _TOL, f'{slug}: height {h} ≠ expected {exp_h} (±{_TOL})'
 
     @_hairpin_skip
-    @pytest.mark.parametrize('slug,exp', list(_EQ_SIZES.items()))
+    @pytest.mark.parametrize(('slug', 'exp'), list(_EQ_SIZES.items()))
     def test_equation_dimensions_pymupdf4llm(self, hairpin_out_pymupdf4llm, slug, exp):
         """Each equation image must be within ±_TOL px of its observed size (never full-page)."""
         exp_w, exp_h = exp
         all_pngs = list((hairpin_out_pymupdf4llm / 'img').rglob(f'*-{slug}.png'))
         assert all_pngs, f'pymupdf4llm: no PNG matching slug "{slug}"'
         w, h = read_png_size(all_pngs[0])
-        assert (w, h) != _FULL_PAGE, f'{slug}: full-page fallback used ({w}×{h})'
+        assert (w, h) != _FULL_PAGE, f'{slug}: full-page fallback used ({w}x{h})'
         assert abs(w - exp_w) <= _TOL, f'{slug}: width {w} ≠ expected {exp_w} (±{_TOL})'
         assert abs(h - exp_h) <= _TOL, f'{slug}: height {h} ≠ expected {exp_h} (±{_TOL})'
 
 
 # ── Tests: inline equation links in markdown ──────────────────────────────────
+
 
 class TestHairpinEquationLinks:
     """Equations must be linked inline in section markdown with correct ordering."""
@@ -276,12 +276,10 @@ class TestHairpinEquationLinks:
         assert sec3, 'pymupdf4llm: section 03 md file not found'
         content = sec3.read_text('utf-8')
         eq_lines = _eq_image_line_numbers(content)
-        # Equations 1–7 and 9–12 must be present; 8 is best-effort
+        # Equations 1-7 and 9-12 must be present; 8 is best-effort
         required = [n for n in _EXPECTED_EQ_SEC3 if n != 8]
         missing = [n for n in required if n not in eq_lines]
-        assert not missing, (
-            f'pymupdf4llm: equations {missing} not found as inline images in {sec3.name}'
-        )
+        assert not missing, f'pymupdf4llm: equations {missing} not found as inline images in {sec3.name}'
 
     @_hairpin_skip
     def test_equation_13_image_exists_pymupdf4llm(self, hairpin_out_pymupdf4llm):
@@ -305,10 +303,9 @@ class TestHairpinEquationLinks:
         eq_lines = _eq_image_line_numbers(content)
         # Check strict ordering for the "clean" sequence (excludes 5,6,8)
         clean = [n for n in _EXPECTED_EQ_SEC3 if n not in (5, 6, 8) and n in eq_lines]
-        for a, b in zip(clean, clean[1:]):
+        for a, b in itertools.pairwise(clean):
             assert eq_lines[a] < eq_lines[b], (
-                f'pymupdf4llm: Equation {a} (line {eq_lines[a]}) after '
-                f'Equation {b} (line {eq_lines[b]}) — wrong order'
+                f'pymupdf4llm: Equation {a} (line {eq_lines[a]}) after Equation {b} (line {eq_lines[b]}) — wrong order'
             )
         # Eq 5 and 6 must at least appear before eq 7 (the equation that references them)
         if 5 in eq_lines and 7 in eq_lines:
@@ -330,14 +327,12 @@ class TestHairpinEquationLinks:
         for i, line in enumerate(lines):
             if re.search(r'!\[Equation \d+\]', line):
                 # next non-empty line should be italic formula text
-                for nxt in lines[i + 1: i + 4]:
+                for nxt in lines[i + 1 : i + 4]:
                     if nxt.strip():
                         if re.match(r'^\*[^*]+\*$', nxt.strip()):
                             hints_found += 1
                         break
-        assert hints_found >= 6, (
-            f'pymupdf4llm: only {hints_found}/12 equations have plain-text formula hints'
-        )
+        assert hints_found >= 6, f'pymupdf4llm: only {hints_found}/12 equations have plain-text formula hints'
 
     # ── Marker variants ────────────────────────────────────────────────────
 
@@ -361,7 +356,7 @@ class TestHairpinEquationLinks:
         content = sec3.read_text('utf-8')
         eq_lines = _eq_image_line_numbers(content)
         clean = [n for n in _EXPECTED_EQ_SEC3 if n not in (5, 6, 8) and n in eq_lines]
-        for a, b in zip(clean, clean[1:]):
+        for a, b in itertools.pairwise(clean):
             assert eq_lines[a] < eq_lines[b], (
                 f'marker: Equation {a} (L{eq_lines[a]}) after Equation {b} (L{eq_lines[b]})'
             )

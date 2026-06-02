@@ -1,11 +1,12 @@
 """E2E tests for the IEEE conference template PDF (ieee-conference.tex ground truth)."""
+
 import re
-import tempfile
 from pathlib import Path
 
 import pytest
 
-from ..conftest import _marker_skip, marker_available
+from tests.conftest import _marker_skip, marker_available
+
 from .conftest import (
     _cached_ingest,
     collect_pngs,
@@ -16,9 +17,9 @@ from .conftest import (
 )
 
 # ── Ground truth from ieee-conference.tex ─────────────────────────────────────
-#   1 figure:  Figure 1 — "Example of a figure caption."  (fig1.png, 341×297 px)
-#   1 table:   Table I  — "Table Type Styles" (4 columns)
-#   1 equation: Equation (1) — a+b=γ
+#   1 figure:  Figure 1 -- "Example of a figure caption."  (fig1.png, 341x297 px)
+#   1 table:   Table I  -- "Table Type Styles" (4 columns)
+#   1 equation: Equation (1) -- a+b=gamma
 #   Sections:  Introduction, Ease of Use, Prepare Your Paper Before Styling,
 #              Acknowledgment, References, Biographies (~6 sections)
 #   Title:     "Conference Paper Title*"
@@ -32,7 +33,7 @@ _MAX_SECTIONS = 25
 
 # Image dimension bounds at 2x render (fitz.Matrix(2.0, 2.0)):
 #   IEEE single-column width ≈ 252 pt → ~504 px at 2x
-#   Tight crop may be narrower (266 px observed). Full-page fallback = 1224×1584.
+#   Tight crop may be narrower (266 px observed). Full-page fallback = 1224x1584.
 _FIGURE_W_MIN, _FIGURE_W_MAX = 150, 900
 _FIGURE_H_MIN, _FIGURE_H_MAX = 150, 900
 _TABLE_W_MIN, _TABLE_W_MAX = 150, 1250
@@ -46,6 +47,7 @@ def _run(pdf, out_dir, _monkeypatch, method):
 
 # ── Module-scoped fixtures (one marker run per session, cached) ──────────────
 
+
 @pytest.fixture(scope='module')
 def ieee_out_pymupdf4llm(tmp_path_factory):
     pdf = get_ieee_pdf_path()
@@ -56,7 +58,6 @@ def ieee_out_pymupdf4llm(tmp_path_factory):
 
 @pytest.fixture(scope='module')
 def ieee_out_marker(tmp_path_factory):
-    from ..conftest import marker_available
     pdf = get_ieee_pdf_path()
     if not pdf.exists():
         pytest.fail(f'Test PDF not found at {pdf}')
@@ -66,6 +67,7 @@ def ieee_out_marker(tmp_path_factory):
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
 
 def _read_paper_title(out_dir: Path) -> str:
     return (out_dir / 'paper.md').read_text('utf-8').split('\n', 1)[0]
@@ -81,6 +83,7 @@ def _index_md_content(out_dir: Path) -> str:
 
 # ── Tests: structure ─────────────────────────────────────────────────────────
 
+
 class TestIEEEConference:
     """End-to-end pipeline tests against a known IEEE conference template PDF."""
 
@@ -89,7 +92,7 @@ class TestIEEEConference:
     def test_section_count_pymupdf4llm(self, ieee_out_pymupdf4llm):
         md_files = list((ieee_out_pymupdf4llm / 'md').glob('*.md'))
         assert _MIN_SECTIONS <= len(md_files) <= _MAX_SECTIONS, (
-            f'pymupdf4llm: {len(md_files)} sections, expected {_MIN_SECTIONS}–{_MAX_SECTIONS}'
+            f'pymupdf4llm: {len(md_files)} sections, expected {_MIN_SECTIONS}-{_MAX_SECTIONS}'
         )
 
     @_marker_skip
@@ -121,16 +124,14 @@ class TestIEEEConference:
 
     def test_introduction_section_exists_pymupdf4llm(self, ieee_out_pymupdf4llm):
         intro_found = any(
-            re.search(r'(?i)\bintroduction\b', p.read_text('utf-8'))
-            for p in (ieee_out_pymupdf4llm / 'md').glob('*.md')
+            re.search(r'(?i)\bintroduction\b', p.read_text('utf-8')) for p in (ieee_out_pymupdf4llm / 'md').glob('*.md')
         )
         assert intro_found, 'pymupdf4llm: no Introduction section found'
 
     @_marker_skip
     def test_introduction_section_exists_marker(self, ieee_out_marker):
         intro_found = any(
-            re.search(r'(?i)\bintroduction\b', p.read_text('utf-8'))
-            for p in (ieee_out_marker / 'md').glob('*.md')
+            re.search(r'(?i)\bintroduction\b', p.read_text('utf-8')) for p in (ieee_out_marker / 'md').glob('*.md')
         )
         assert intro_found
 
@@ -253,25 +254,19 @@ class TestIEEEConference:
             assert w > 0 and h > 0
 
     def test_at_least_one_cropped_image_pymupdf4llm(self, ieee_out_pymupdf4llm):
-        cropped = sum(
-            1 for p in collect_pngs(ieee_out_pymupdf4llm)
-            if read_png_size(p) != (_FULL_PAGE_W, _FULL_PAGE_H)
-        )
+        cropped = sum(1 for p in collect_pngs(ieee_out_pymupdf4llm) if read_png_size(p) != (_FULL_PAGE_W, _FULL_PAGE_H))
         assert cropped >= 1, 'pymupdf4llm: all images are full-page (crop failed)'
 
     @_marker_skip
     def test_at_least_one_cropped_image_marker(self, ieee_out_marker):
-        cropped = sum(
-            1 for p in collect_pngs(ieee_out_marker)
-            if read_png_size(p) != (_FULL_PAGE_W, _FULL_PAGE_H)
-        )
+        cropped = sum(1 for p in collect_pngs(ieee_out_marker) if read_png_size(p) != (_FULL_PAGE_W, _FULL_PAGE_H))
         assert cropped >= 1
 
     # ── Cross-method comparison ────────────────────────────────────────────
 
     def test_both_methods_comparable(self, ieee_out_pymupdf4llm, ieee_out_marker):
-        p_sec = len(list((ieee_out_pymupdf4llm / 'md').glob('*.md')))
+        len(list((ieee_out_pymupdf4llm / 'md').glob('*.md')))
         m_sec = len(list((ieee_out_marker / 'md').glob('*.md')))
         # Marker uses proper ## headings; pymupdf4llm falls back to text
         # heuristics for 2-column IEEE — section counts differ by design.
-        assert 3 <= m_sec <= 12, f'marker: {m_sec} sections (expected 3–12)'
+        assert 3 <= m_sec <= 12, f'marker: {m_sec} sections (expected 3-12)'

@@ -2,8 +2,8 @@
 
 Available everywhere (unit/ and e2e/ subtrees).
 """
+
 import gc
-import shutil
 from pathlib import Path
 
 import fitz

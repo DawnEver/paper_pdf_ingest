@@ -3,7 +3,8 @@ import shutil
 from pathlib import Path
 
 from .figures import build_figure_page_map, render_equation_images, render_figure_pages
-from .utils import RN_PATTERN as _RN, extract_title_from_preamble, slug
+from .utils import RN_PATTERN as _RN
+from .utils import extract_title_from_preamble, slug
 
 # ── Section file I/O ─────────────────────────────────────────────────────────
 

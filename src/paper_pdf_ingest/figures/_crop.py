@@ -1,4 +1,5 @@
 """Figure and equation region cropping from PDF pages."""
+
 from __future__ import annotations
 
 import re
@@ -41,8 +42,15 @@ def crop_figure(page: fitz.Page, label: str, content_below: bool = False) -> fit
         lower_bound = min(lower_bound, body_lower)
 
     graphic_rects = _collect_graphic_rects(
-        page, cap_top, cap_bottom, half_page, col_x0, col_x1, content_below,
-        upper_bound=upper_bound, lower_bound=lower_bound,
+        page,
+        cap_top,
+        cap_bottom,
+        half_page,
+        col_x0,
+        col_x1,
+        content_below,
+        upper_bound=upper_bound,
+        lower_bound=lower_bound,
     )
 
     extra_x_rects: list = []
@@ -54,8 +62,17 @@ def crop_figure(page: fitz.Page, label: str, content_below: bool = False) -> fit
             lower_bound = min(lower_bound, row_bottom)
 
     return _build_crop_rect(
-        page_rect, cap_x0, cap_x1, cap_top, cap_bottom, half_page, graphic_rects, content_below,
-        upper_bound=upper_bound, lower_bound=lower_bound, extra_x_rects=extra_x_rects,
+        page_rect,
+        cap_x0,
+        cap_x1,
+        cap_top,
+        cap_bottom,
+        half_page,
+        graphic_rects,
+        content_below,
+        upper_bound=upper_bound,
+        lower_bound=lower_bound,
+        extra_x_rects=extra_x_rects,
     )
 
 
@@ -96,7 +113,7 @@ def crop_equation(page: fitz.Page, eq_num: str) -> fitz.Rect | None:
 
 _CAP_LABEL_RE = re.compile(r'(?:Fig\.|Figure|Table)\s+', re.IGNORECASE)
 # Maximum block height for a caption (incl. multi-line subfigure layouts).
-# Body-text paragraphs are typically 80–200 pt; IEEE captions are ≤60 pt.
+# Body-text paragraphs are typically 80-200 pt; IEEE captions are <=60 pt.
 _CAP_MAX_HEIGHT = 45.0
 
 
@@ -115,9 +132,7 @@ def _find_caption_bounds(
     for blk in blocks:
         if blk['type'] != 0:
             continue
-        blk_text = ''.join(
-            span.get('text', '') for line in blk.get('lines', []) for span in line.get('spans', [])
-        )
+        blk_text = ''.join(span.get('text', '') for line in blk.get('lines', []) for span in line.get('spans', []))
         bx0, y0, bx1, y1 = blk['bbox']
         blk_height = y1 - y0
         # Only compact blocks that look like captions (short text, narrow height)
@@ -136,9 +151,7 @@ def _find_caption_bounds(
 _MIN_TABLE_HEIGHT = 40.0  # body text must start at least this far below the table caption
 
 
-def _find_body_text_lower(
-    page: fitz.Page, cap_bottom: float, col_x0: float, col_x1: float
-) -> float:
+def _find_body_text_lower(page: fitz.Page, cap_bottom: float, col_x0: float, col_x1: float) -> float:
     """Return y0 of first full-column-width body-paragraph text block below the table.
 
     Body paragraphs span ≥70% of the column width.  We require a minimum gap of
@@ -151,8 +164,7 @@ def _find_body_text_lower(
     def _in_col(r: fitz.Rect) -> bool:
         return col_x0 < (r.x0 + r.x1) / 2 < col_x1
 
-    for blk in sorted(page.get_text('dict', flags=fitz.TEXT_PRESERVE_WHITESPACE)['blocks'],
-                      key=lambda b: b['bbox'][1]):
+    for blk in sorted(page.get_text('dict', flags=fitz.TEXT_PRESERVE_WHITESPACE)['blocks'], key=lambda b: b['bbox'][1]):
         if blk['type'] != 0:
             continue
         r = fitz.Rect(blk['bbox'])
@@ -214,9 +226,7 @@ def _find_caption_rect(blocks: list, label: str) -> fitz.Rect | None:
     for blk in blocks:
         if blk['type'] != 0:
             continue
-        blk_text = ''.join(
-            span.get('text', '') for line in blk.get('lines', []) for span in line.get('spans', [])
-        )
+        blk_text = ''.join(span.get('text', '') for line in blk.get('lines', []) for span in line.get('spans', []))
         if len(blk_text) > 350:
             continue
         for pat in patterns:
@@ -228,7 +238,7 @@ def _find_caption_rect(blocks: list, label: str) -> fitz.Rect | None:
 
     if not candidates:
         return None
-    # Pick the most compact block — true captions are 1–2 lines, body refs are paragraph-tall
+    # Pick the most compact block -- true captions are 1-2 lines, body refs are paragraph-tall
     candidates.sort(key=lambda x: x[0])
     return candidates[0][1]
 
@@ -478,14 +488,11 @@ def _crop_eq_text_region(
             if r.width > body_threshold:
                 continue
             blk_lines = blk.get('lines', [])
-            if any(
-                _is_body_text_line(''.join(s.get('text', '') for s in ln.get('spans', [])))
-                for ln in blk_lines
-            ):
+            if any(_is_body_text_line(''.join(s.get('text', '') for s in ln.get('spans', []))) for ln in blk_lines):
                 continue
             above.append(r)
 
-    all_rects = [eq_block_rect] + above
+    all_rects = [eq_block_rect, *above]
     x0 = min(r.x0 for r in all_rects)
     y0 = min(r.y0 for r in all_rects)
     x1 = max(r.x1 for r in all_rects)
