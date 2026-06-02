@@ -1,10 +1,34 @@
 # paper_pdf_ingest
 
+Standalone Python library — PDF → per-section markdown + cropped figure images.
 
-Always use the shared venv at `~/.local/share/paper-review-venv` — do **not** use `uv run` or the project's `.venv`.
+## Dev workflow
 
 ```bash
-~/.local/share/paper-review-venv/bin/pytest tests/ -q --override-ini="addopts="
+# Install dev deps (once)
+uv sync --all-extras
+
+# Run tests
+uv run pytest
+
+# Run tests with coverage
+make test-cov
+
+# Lint + format
+make lint
+make fmt
 ```
 
-The `--override-ini="addopts="` strips the coverage flags from `pyproject.toml` that require `pytest-cov` (not installed in the shared venv).
+## Used by paper-review
+
+The parent `paper-review` pipeline installs this library into a shared venv:
+
+```bash
+~/.local/share/paper-review-venv/bin/pip install -e .
+```
+
+When working on the library from within the paper-review context, use that venv to run tests:
+
+```bash
+~/.local/share/paper-review-venv/bin/pytest tests/ -q
+```
