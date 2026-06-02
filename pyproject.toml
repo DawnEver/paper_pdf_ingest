@@ -1,0 +1,149 @@
+[build-system]
+requires = ['hatchling']
+build-backend = 'hatchling.build'
+
+[project]
+name = 'paper-pdf-ingest'
+dynamic = ['version']
+license = {text = 'MIT'}
+description = 'Academic paper PDF ingestion: convert to per-section markdown + images'
+requires-python = '>=3.12'
+
+authors = [
+    {name = 'linxu', email = 'edcgghedcgg@gmail.com'}
+]
+dependencies = [
+    'pymupdf>=1.23.0',
+    'pymupdf4llm>=0.0.8',
+    'pdfplumber>=0.9.0',
+]
+
+[project.optional-dependencies]
+dev = [
+    'pytest',
+    'pytest-cov',
+    'pytest-mock',
+    'coverage[toml]',
+    'pre-commit',
+    'ruff',
+]
+
+[project.scripts]
+ingest = 'paper_pdf_ingest.__main__:main'
+
+[project.urls]
+Repository = 'https://github.com/linxuanm/paper-pdf-ingest'
+
+# ===================
+# Hatch
+# ===================
+[tool.hatch.version]
+path = 'src/paper_pdf_ingest/__init__.py'
+
+[tool.hatch.build.targets.wheel]
+packages = ['src/paper_pdf_ingest']
+
+# ===================
+# Coverage
+# ===================
+[tool.coverage.run]
+source = ['src/paper_pdf_ingest']
+branch = true
+
+[tool.coverage.report]
+precision = 2
+exclude_lines = [
+    'if 0:',
+    "if __name__ == '__main__':",
+    '@not_implemented',
+    '@abstractmethod',
+    'if TYPE_CHECKING:',
+    'pragma: no cover',
+]
+omit = [
+    '__version__.py',
+    'test_*.py',
+    'tests/*',
+]
+[tool.coverage.html]
+directory = 'htmlcov'
+
+# ===================
+# Ruff
+# ===================
+[tool.ruff]
+target-version = 'py312'
+line-length = 120
+unsafe-fixes = true
+exclude = [
+    '.venv*',
+    '.git',
+    '**/__version__.py',
+]
+
+[tool.ruff.lint]
+preview = false
+select = [
+    'AIR', 'ERA', 'YTT', 'ANN', 'ASYNC', 'S', 'BLE', 'FBT', 'B', 'A',
+    'COM', 'C4', 'DTZ', 'T10', 'EM', 'FIX', 'FA', 'INT', 'ISC', 'ICN',
+    'LOG', 'G', 'INP', 'PIE', 'T20', 'PYI', 'PT', 'Q', 'RSE', 'RET',
+    'SLF', 'SIM', 'SLOT', 'TID', 'TD', 'ARG', 'PTH', 'FLY', 'I', 'C90',
+    'NPY', 'PD', 'N', 'PERF', 'E', 'W', 'D', 'F', 'PGH', 'PLC', 'PLE',
+    'PLR', 'PLW', 'UP', 'FURB', 'RUF', 'TRY',
+]
+ignore = [
+    'ANN002', 'ANN003', 'ANN202', 'ANN205',
+    'ARG002', 'B904', 'C901', 'COM812',
+    'D105', 'D205', 'D400', 'D415', 'D417',
+    'DTZ005', 'E501', 'FBT', 'LOG015',
+    'N801', 'N802', 'N803', 'N805', 'N815', 'N816', 'N818',
+    'S101', 'S311', 'S603', 'SIM108', 'SLF001',
+    'RUF012', 'RUF043',
+    'PLR0912', 'PLR0913', 'PLR0915',
+    'PT012', 'PT018',
+    'Q000', 'Q003', 'UP017',
+    # Intentional: GPU detection / optional deps
+    'S607',    # partial executable paths for system commands
+    'BLE001',  # blind Exception for GPU detection fallback
+    'S110',    # try-except-pass for hardware probing
+    'PLC0415', # lazy imports for optional dependencies (torch, pymupdf4llm, …)
+    'ARG001',  # interface consistency for _run_pdfplumber out_dir
+    'TRY301',  # abstract raise in convert()
+    'PLC0206', # dict iteration style
+    'B023',    # lambda in re.sub — called synchronously, not deferred
+    'B017',    # pytest.raises(Exception) for testing exception paths
+    'PT011',   # broad pytest.raises without match
+    # TODO: remove these ignore rules
+    'ANN201', 'ANN206', 'ANN001',
+    'B018', 'D203', 'D100', 'D101', 'D102', 'D103', 'D104', 'D107',
+    'D213', 'D401',
+    'ERA001', 'N806',
+    'PLR2004', 'PLW2901', 'SIM113', 'TRY300',
+    'NPY002', 'INP001', 'TD', 'FIX', 'EXE',
+]
+
+[tool.ruff.format]
+preview = true
+quote-style = 'single'
+indent-style = 'space'
+skip-magic-trailing-comma = false
+line-ending = 'auto'
+docstring-code-format = true
+docstring-code-line-length = 'dynamic'
+
+# ===================
+# Pytest
+# ===================
+[tool.pytest.ini_options]
+filterwarnings = [
+    'ignore::UserWarning',
+]
+minversion = '6.0'
+addopts = """
+-v -q
+-ra
+-s
+"""
+testpaths = [
+    'tests',
+]

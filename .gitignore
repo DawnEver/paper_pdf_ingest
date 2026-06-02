@@ -1,0 +1,59 @@
+##############################
+# Build & Distribution
+##############################
+*.egg-info
+**/__pycache__
+build/
+dist/
+**/__version__.py
+
+## Cython
+*.c
+
+## PyInstaller
+*.spec
+
+##############################
+# Development Tools
+##############################
+uv.lock
+result*.json
+dumps/
+
+## Documentation (pdoc)
+**/docs/
+
+## Quality & Testing (Pytest, Coverage, Mypy, Ruff)
+.coverage*
+report/
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+##############################
+# Runtime & Environment
+##############################
+**/.env
+.venv*
+usr/local/
+output/
+
+## Logs
+**/log/
+**/log/*.log
+**/log/*.log.error
+**/log/*.png
+**/log/*.jpg
+!example.log
+
+
+##############################
+# Claude Memories
+##############################
+.claude/*
+!.claude/CLAUDE.md
+!.claude/rules
+!.claude/rules/**
+!.claude/memory
+!.claude/memory/**
