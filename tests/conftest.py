@@ -39,10 +39,10 @@ def make_test_pdf(pdf_path: Path, pages: list[dict]) -> None:
 
 
 def marker_available() -> bool:
-    """True when marker-pdf is usable: GPU ≥ 4 GB VRAM + marker_single on PATH."""
-    from paper_pdf_ingest.convert import detect_gpu_vram_gb
+    """True when marker-pdf is usable: GPU ≥ 4 GB VRAM + marker_single available."""
+    from paper_pdf_ingest.convert import _find_marker_single, detect_gpu_vram_gb
 
-    return detect_gpu_vram_gb() >= 4.0 and shutil.which('marker_single') is not None
+    return detect_gpu_vram_gb() >= 4.0 and _find_marker_single() is not None
 
 
 _marker_skip = pytest.mark.skipif(not marker_available(), reason='marker_single not available or GPU < 4GB')

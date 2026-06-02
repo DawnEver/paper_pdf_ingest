@@ -95,12 +95,19 @@ def crop_equation(page: fitz.Page, eq_num: str) -> fitz.Rect | None:
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 _CAP_LABEL_RE = re.compile(r'(?:Fig\.|Figure|Table)\s+', re.IGNORECASE)
+# Maximum block height for a caption (incl. multi-line subfigure layouts).
+# Body-text paragraphs are typically 80–200 pt; IEEE captions are ≤60 pt.
+_CAP_MAX_HEIGHT = 45.0
 
 
 def _find_caption_bounds(
     blocks: list, cap_x0: float, cap_top: float, cap_bottom: float, page_mid: float
 ) -> tuple[float, float]:
-    """Return (upper_bound, lower_bound) y-coords from nearest same-column captions above/below."""
+    """Return (upper_bound, lower_bound) y-coords from nearest same-column captions above/below.
+
+    Uses a height threshold to distinguish compact caption blocks (≤60 pt) from
+    taller body-text paragraphs that happen to contain a figure cross-reference.
+    """
     upper_bound = 0.0
     lower_bound = float('inf')
     same_col_left = cap_x0 < page_mid
@@ -111,9 +118,11 @@ def _find_caption_bounds(
         blk_text = ''.join(
             span.get('text', '') for line in blk.get('lines', []) for span in line.get('spans', [])
         )
-        if len(blk_text) > 350 or not _CAP_LABEL_RE.search(blk_text):
-            continue
         bx0, y0, bx1, y1 = blk['bbox']
+        blk_height = y1 - y0
+        # Only compact blocks that look like captions (short text, narrow height)
+        if len(blk_text) > 350 or not _CAP_LABEL_RE.search(blk_text) or blk_height > _CAP_MAX_HEIGHT:
+            continue
         blk_col_left = (bx0 + bx1) / 2 < page_mid
         if blk_col_left != same_col_left:
             continue  # different column — ignore
@@ -184,7 +193,24 @@ def _collect_table_row_bounds(
 
 
 def _find_caption_rect(blocks: list, label: str) -> fitz.Rect | None:
-    cap_pattern = re.compile(re.escape(label) + r'\.', re.IGNORECASE)
+    """Return the best-match caption block for *label*.
+
+    Collects all short blocks (≤350 chars) that contain "label." and returns
+    the one with the SMALLEST height — caption blocks are compact (1-2 lines),
+    while body-text blocks that contain a cross-reference to the same figure
+    are typically much taller.
+
+    Also tries the "Fig. N." short form when *label* is "Figure N", so that
+    captions using the abbreviated form are found even when the caller passes
+    the normalised form.
+    """
+    label = re.sub(r'\s+', ' ', label).strip()  # normalise newlines from 2-col extraction
+    patterns = [re.compile(re.escape(label) + r'\.', re.IGNORECASE)]
+    m = re.match(r'^Figure\s+(\d+)$', label, re.IGNORECASE)
+    if m:
+        patterns.append(re.compile(rf'Fig\.\s*{m.group(1)}\.', re.IGNORECASE))
+
+    candidates: list[tuple[float, fitz.Rect]] = []
     for blk in blocks:
         if blk['type'] != 0:
             continue
@@ -193,9 +219,18 @@ def _find_caption_rect(blocks: list, label: str) -> fitz.Rect | None:
         )
         if len(blk_text) > 350:
             continue
-        if cap_pattern.search(blk_text):
-            return fitz.Rect(blk['bbox'])
-    return None
+        for pat in patterns:
+            if pat.search(blk_text):
+                bbox = blk['bbox']
+                height = bbox[3] - bbox[1]
+                candidates.append((height, fitz.Rect(bbox)))
+                break
+
+    if not candidates:
+        return None
+    # Pick the most compact block — true captions are 1–2 lines, body refs are paragraph-tall
+    candidates.sort(key=lambda x: x[0])
+    return candidates[0][1]
 
 
 def _column_bounds(page_rect: fitz.Rect, cap_x0: float) -> tuple[float, float]:

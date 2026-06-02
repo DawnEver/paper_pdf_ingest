@@ -1,6 +1,8 @@
+import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 # ── GPU detection ────────────────────────────────────────────────────────────
@@ -47,9 +49,27 @@ def detect_gpu_vram_gb() -> float:
     return 0.0
 
 
+def _find_marker_single() -> str | None:
+    """Return path to marker_single binary, or None."""
+    exe = shutil.which('marker_single')
+    if exe:
+        return exe
+    # Check next to the running python (venv Scripts/ not always on PATH)
+    exe_dir = os.path.dirname(sys.executable)
+    exe_name = 'marker_single.exe' if os.name == 'nt' else 'marker_single'
+    candidate = os.path.join(exe_dir, exe_name)
+    if os.path.isfile(candidate):
+        return candidate
+    # Check sys.prefix bin
+    candidate = os.path.join(sys.prefix, 'bin', 'marker_single')
+    if os.path.isfile(candidate):
+        return candidate
+    return None
+
+
 def choose_tool() -> str:
     vram = detect_gpu_vram_gb()
-    if vram >= 4 and shutil.which('marker_single'):
+    if vram >= 4 and _find_marker_single():
         return 'marker'
     return 'pymupdf4llm'
 
@@ -62,8 +82,12 @@ def _run_marker(pdf: Path, out_dir: Path) -> str:
     tmp = out_dir / '_marker_tmp'
     tmp.mkdir(parents=True, exist_ok=True)
     try:
+        marker = _find_marker_single()
+        if not marker:
+            msg = 'marker_single not found'
+            raise FileNotFoundError(msg)
         subprocess.run(
-            ['marker_single', str(pdf), '--output_format', 'markdown', '--output_dir', str(tmp)],
+            [marker, str(pdf), '--output_format', 'markdown', '--output_dir', str(tmp)],
             check=True,
         )
         md_files = list(tmp.rglob('*.md'))

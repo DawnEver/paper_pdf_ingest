@@ -53,12 +53,19 @@ def run_full_pipeline(pdf: Path, out_dir: Path, method: str) -> tuple[Path, int,
     return out_dir, n_sec, n_fig, n_tbl
 
 
-# ── Module-scoped ingest cache (avoids re-running expensive OCR per test) ────
+# ── Session-level ingest cache (avoids re-running expensive OCR per test) ─────
+
+_ingest_cache: dict[tuple[str, str], Path] = {}
+
 
 def _cached_ingest(pdf: Path, method: str, tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Run the full pipeline once per (pdf, method) pair per test session."""
+    key = (str(pdf.resolve()), method)
+    if key in _ingest_cache:
+        return _ingest_cache[key]
     out = tmp_path_factory.mktemp(f'{pdf.stem}_{method}')
     run_full_pipeline(pdf, out, method)
+    _ingest_cache[key] = out
     return out
 
 

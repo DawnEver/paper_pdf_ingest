@@ -287,7 +287,7 @@ def render_figure_pages(
             continue
         content = sec_file.read_text(encoding='utf-8')
         for m in FIG_TABLE_RE.finditer(content):
-            label = m.group(1)
+            label = re.sub(r'\s+', ' ', m.group(1)).strip()
             normalized = re.sub(r'^Fig\.\s*', 'Figure ', label)
             page_num = figure_page_map.get(normalized)
             if page_num is None or normalized in seen:

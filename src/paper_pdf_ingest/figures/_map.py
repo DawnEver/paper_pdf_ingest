@@ -13,26 +13,42 @@ FIG_TABLE_RE = re.compile(rf'(Figure\s+\d+|Fig\.\s*\d+|Table\s+(?:\d+|{_RN}))', 
 def build_figure_page_map(pdf_path: Path) -> dict[str, int]:
     """Return dict mapping normalized figure/table labels to 0-based page numbers.
 
-    Prioritises the page containing the figure *caption* (label followed by a
-    period), which is where the actual figure lives.  Falls back to the first
-    mention page when no caption is found.
+    Prioritises the page whose caption block is most compact (shortest height).
+    True caption blocks are 1-2 lines tall; body-text cross-references like
+    "…results shown in Fig. 14. In comparison, …" are in tall paragraph blocks.
+    Falls back to the first mention page when no caption block is found.
     """
-    caption_pages: dict[str, int] = {}
+    # Per-label: (min_caption_height, page_num)
+    caption_candidates: dict[str, tuple[float, int]] = {}
     mention_pages: dict[str, int] = {}
     doc = fitz.open(str(pdf_path))
     for page_num in range(len(doc)):
-        text = str(doc[page_num].get_text('text'))
-        for m in FIG_TABLE_RE.finditer(text):
-            label = m.group(1)
-            normalized = re.sub(r'(?i)^Fig\.\s*', 'Figure ', label)
-            is_caption = bool(re.search(re.escape(label) + r'\.', text, re.IGNORECASE))
-            if is_caption and normalized not in caption_pages:
-                caption_pages[normalized] = page_num
-            if normalized not in mention_pages:
-                mention_pages[normalized] = page_num
+        blocks = doc[page_num].get_text('dict', flags=fitz.TEXT_PRESERVE_WHITESPACE)['blocks']
+        for blk in blocks:
+            if blk['type'] != 0:
+                continue
+            blk_text = ''.join(
+                span.get('text', '') for line in blk.get('lines', []) for span in line.get('spans', [])
+            )
+            if len(blk_text) > 350:
+                continue
+            blk_height = blk['bbox'][3] - blk['bbox'][1]
+            for m in FIG_TABLE_RE.finditer(blk_text):
+                label = re.sub(r'\s+', ' ', m.group(1)).strip()
+                normalized = re.sub(r'(?i)^Fig\.\s*', 'Figure ', label)
+                # Caption: "label." must appear in the block text
+                is_caption = bool(
+                    re.search(re.escape(label) + r'\.', blk_text, re.IGNORECASE)
+                )
+                if is_caption:
+                    prev = caption_candidates.get(normalized)
+                    if prev is None or blk_height < prev[0]:
+                        caption_candidates[normalized] = (blk_height, page_num)
+                if normalized not in mention_pages:
+                    mention_pages[normalized] = page_num
     doc.close()
     result = dict(mention_pages)
-    result.update(caption_pages)
+    result.update({norm: page for norm, (_, page) in caption_candidates.items()})
     return result
 
 
